@@ -16,10 +16,10 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
         j = high + 1
         while True:
             i += 1
-            while list_file[i][sort_index[sort_columns[0]]] < pivot:
+            while float(list_file[i][sort_index[sort_columns[0]]]) < float(pivot):
                 i += 1
             j -= 1
-            while list_file[j][sort_index[sort_columns[0]]] > pivot:
+            while float(list_file[j][sort_index[sort_columns[0]]]) > float(pivot):
                 j -= 1
             if i >= j:
                 return j
@@ -45,20 +45,25 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
 
     with open(filename, encoding='utf-8') as open_file:
         filename_reader = csv.reader(open_file)
+        count = 0
         for line in filename_reader:
-            list_file.append(line)
+            if count == 0:
+                count += 1
+                continue
+            if line[sort_index[sort_columns[0]]] != '':
+                list_file.append(line)
         numline = len(open_file.readlines())
         quick_sort(list_file, sort_columns)
         if group_by_name:
             quick_sort(list_file, ["Name"])
         if order == 'asc':
-            return list_file[limit-1::-1]
+            return list_file[:len(list_file)-limit-1:-1]
         return list_file[:limit]
 
 
 # print(select_sorted(filename='all_stocks_5yr.csv', order='desc', limit=3))
 #
-# print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3))
+print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3))
 #
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3, group_by_name=True))
 
