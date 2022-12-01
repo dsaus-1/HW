@@ -50,8 +50,9 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
             if count == 0:
                 count += 1
                 continue
-            if line[sort_index[sort_columns[0]]] != '':
-                list_file.append(line)
+            if line[sort_index[sort_columns[0]]] == '':
+                line[sort_index[sort_columns[0]]] = '0'
+            list_file.append(line)
         numline = len(open_file.readlines())
         quick_sort(list_file, sort_columns)
         if group_by_name:
