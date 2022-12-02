@@ -109,12 +109,9 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                 return list_file[:limit-1]
 
 
-
-
 print(select_sorted(filename='all_stocks_5yr.csv', order='desc', limit=3))
 print(select_sorted(filename='all_stocks_5yr.csv', order='asc', limit=3))
 print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5))
 print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5, sort_columns=['close']))
-#
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3, group_by_name=True))
 
