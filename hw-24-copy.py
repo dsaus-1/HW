@@ -42,7 +42,6 @@ def get_by_date(date="2017-08-08", name="PCLN", filename='dump.csv'):
 
 def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='desc', filename='dump.csv'):
     list_file = []
-    sort_index = {'date': 0, 'open': 1, "high": 2, 'low': 3, 'close': 4, 'volume': 5, 'Name': 6}
     def partition(list_file, low, high, sort_columns):
         '''
         расчет индекса и замена элементов при сортировке quick_sort
@@ -50,15 +49,15 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
         # Выбираем средний элемент в качестве опорного
         # Также возможен выбор первого, последнего
         # или произвольного элементов в качестве опорного
-        pivot = list_file[(low + high) // 2][sort_index[sort_columns[0]]]
+        pivot = list_file[(low + high) // 2][sort_columns[0]]
         i = low - 1
         j = high + 1
         while True:
             i += 1
-            while float(list_file[i][sort_index[sort_columns[0]]]) < float(pivot):
+            while float(list_file[i][sort_columns[0]]) < float(pivot):
                 i += 1
             j -= 1
-            while float(list_file[j][sort_index[sort_columns[0]]]) > float(pivot):
+            while float(list_file[j][sort_columns[0]]) > float(pivot):
                 j -= 1
             if i >= j:
                 return j
@@ -81,40 +80,37 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
 
         return _quick_sort(list_file, 0, len(list_file) - 1, sort_columns)
 
-
     try:
         with open('dump.csv', encoding='utf-8') as open_cache_file:
-            #reader_cache_file = csv.reader(open_cache_file)
-            for cache in open_cache_file:
+            reader_cache_file = csv.DictReader(open_cache_file)
+            for cache in reader_cache_file:
                 print(cache)
-                if cache[0] == [sort_columns, limit, group_by_name, order, filename]:
-                    return cache[1]
+                if cache['request'] == f'{sort_columns}, {limit}, {group_by_name}, {order}, {filename}':
+                    return cache['answer']
         raise Exception
     except:
         with open(filename, encoding='utf-8') as open_file:
-            filename_reader = csv.reader(open_file)
-            count = 0
+            filename_reader = csv.DictReader(open_file)
             for line in filename_reader:
-                if count == 0:
-                    count += 1
-                    continue
-                if line[sort_index[sort_columns[0]]] == '':
-                    line[sort_index[sort_columns[0]]] = '0'
+                if line[sort_columns[0]] == '':
+                    line[sort_columns[0]] = '0'
                 list_file.append(line)
+            quick_sort(list_file, sort_columns)
             # if group_by_name:
             #     quick_sort(list_file, ["Name"])
-            quick_sort(list_file, sort_columns)
-        with open('dump.csv', 'a', encoding='utf-8', newline="") as cache_file:
-            write_cache_file = csv.writer(cache_file)
+        with open('dump.csv', 'a', encoding='utf-8') as cache_file:
+            fieldnames = ['request', 'answer']
+            write_cache_file = csv.DictWriter(cache_file, fieldnames=fieldnames)
             if order == 'asc':
-                write_cache_file.writerows([[sort_columns, limit, group_by_name, order, filename], [list_file[:len(list_file)-limit-1:-1]]])
+                write_cache_file.writerow({'request': sort_columns, limit, group_by_name, order, filename, 'answer': list_file[:len(list_file)-limit-1:-1]})
                 return list_file[:len(list_file)-limit-1:-1]
             else:
-                write_cache_file.writerows([[sort_columns, limit, group_by_name, order, filename], [list_file[:limit-1]]])
-                return list_file[:limit-1]
+                write_cache_file.writerow({'request': sort_columns, limit, group_by_name, order, filename, 'answer': list_file[:limit]})
+                return list_file[:limit]
 
 
 print(select_sorted(filename='all_stocks_5yr.csv', order='desc', limit=3))
+#print(select_sorted(filename='all_stocks_5yr.csv', order='asc', limit=3))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc', limit=13))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5, sort_columns=['close']))
