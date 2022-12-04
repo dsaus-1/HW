@@ -41,6 +41,7 @@ def get_by_date(date="2017-08-08", name="PCLN", filename='dump.csv'):
 
 #print(get_by_date(date='2017-08-07', name="PCLN", filename='dump.csv'))
 
+
 def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='desc', filename='dump.csv'):
     list_file = []
     sort_index = {'date': 0, 'open': 1, "high": 2, 'low': 3, 'close': 4, 'volume': 5, 'Name': 6}
@@ -94,17 +95,15 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                 split_index = partition(items, low, high, sort_columns)
                 _quick_sort(items, low, split_index, sort_columns)
                 _quick_sort(items, split_index + 1, high, sort_columns)
-
         return _quick_sort(list_file, 0, len(list_file) - 1, sort_columns)
 
 
     try:
-        with open('dump.csv', encoding='utf-8', newline='') as open_cache_file:
+        with open('dump.csv', 'r', encoding='utf-8', newline='') as open_cache_file:
             #reader_cache_file = csv.reader(open_cache_file)
             for cache in open_cache_file:
-                #print(cache)
-                if cache[0] == [sort_columns, limit, group_by_name, order, filename]:
-                    return cache[1]
+                if cache[0] == f'{sort_columns}, {limit}, {group_by_name}, {order}, {filename}':
+                    return cache[2:]
         raise Exception
     except:
         with open(filename, encoding='utf-8', newline='') as open_file:
@@ -115,17 +114,17 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                     line[sort_columns[0]] = '0'
                 list_file.append(line)
             if group_by_name:
+
                 '''
                 Если присутствует фильтрация по нейму, то фильтруем весь файл по нейму и создаем файлы содержащие один нейм, 
                 после чего проходимся по каждому файлу, фильтруем его по выбранному параметру и соединяем файлы
                 '''
                 quick_sort(list_file, ["Name"])
-                list_for_middle_file = []
                 list_name_middle_file = []
+                list_for_middle_file = []
                 for l in range(len(list_file)):
                     if list_for_middle_file == []:
                         list_for_middle_file.append(list_file[l])
-                        list_name_middle_file.append(list_file[l]["Name"])
                         continue
                     if l == len(list_file) -1 and list_file[l]["Name"] == list_file[l-1]["Name"]:
                         list_for_middle_file.append(list_file[l])
@@ -138,6 +137,7 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                         name_middle_file = list_file[l]["Name"] + '.csv'
                         if list_file[l]["Name"] == '':
                             name_middle_file = '1_.csv'
+                        list_name_middle_file.append(name_middle_file)
                         with open(name_middle_file, 'a', encoding='utf-8', newline='') as middle_file:
                             fieldnames_middle_file = ['date', 'open', 'high', 'low', 'close', 'volume', 'Name']
                             write_middle_file = csv.DictWriter(middle_file, fieldnames=fieldnames_middle_file)
@@ -145,22 +145,23 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                             for name_line in list_for_middle_file:
                                 write_middle_file.writerow(name_line)
                             list_for_middle_file = []
+                list_file = []
                 if order == 'asc':
-                    final_list_first = []
                     final_list = []
                     ind = -1
                     while True:
                         name = list_name_middle_file[ind]
                         with open(name, 'a', encoding='utf-8', newline='') as middle_file_r:
                             read_middle_file_r = csv.DictReader(middle_file_r)
-                            for a in read_middle_file_r:
-                                final_list_first.append(a)
-                                print(final_list_first)
-                            quick_sort(final_list_first, sort_columns)
-                            final_list_first = final_list_first[::-1]
-                            final_list += final_list_first
-                            final_list_first = []
-                            if len(final_list) < limit:    #если длинна конечного списка меньше лимита, открываем следующий файл и
+                            for line_ in read_middle_file_r:
+                                print(line_)
+                                list_file.append(line_)
+
+                            quick_sort(list_file, sort_columns)
+                            list_file = list_file[::-1]
+                            final_list += list_file
+                            list_file = []
+                            if len(list_file) < limit:    #если длинна конечного списка меньше лимита, открываем следующий файл и
                                 ind -= 1
                             else:   #если длинна больше или равна лимиту, то выходим из цикла
                                 break
@@ -178,7 +179,6 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                             print(d_default)
                             return final_list[:limit]
                 else:
-                    final_list_first = []
                     final_list = []
                     ind = 0
                     while True:
@@ -186,11 +186,11 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                         with open(name, 'a', encoding='utf-8', newline='') as middle_file_r:
                             read_middle_file_r = csv.DictReader(middle_file_r)
                             for a in read_middle_file_r:
-                                final_list_first.append(a)
-                                print(final_list_first)
-                            quick_sort(final_list_first, sort_columns)
-                            final_list += final_list_first
-                            final_list_first = []
+                                list_file.append(a)
+                                print(list_file)
+                            quick_sort(list_file, sort_columns)
+                            final_list += list_file
+                            list_file = []
                             if len(final_list) < limit:    #если длинна конечного списка меньше лимита, открываем следующий файл и
                                 ind += 1
                             else:   #если длинна больше или равна лимиту, то выходим из цикла
