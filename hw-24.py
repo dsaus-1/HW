@@ -1,4 +1,5 @@
 import csv
+import os
 
 def get_by_date(date="2017-08-08", name="PCLN", filename='dump.csv'):
     try:
@@ -50,21 +51,36 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
         # Выбираем средний элемент в качестве опорного
         # Также возможен выбор первого, последнего
         # или произвольного элементов в качестве опорного
-        pivot = list_file[(low + high) // 2][sort_index[sort_columns[0]]]
+        pivot = list_file[(low + high) // 2][sort_columns[0]]
         i = low - 1
         j = high + 1
-        while True:
-            i += 1
-            while float(list_file[i][sort_index[sort_columns[0]]]) < float(pivot):
+        try:
+            if type(float(pivot)):
+                while True:
+                    i += 1
+                    while float(list_file[i][sort_columns[0]]) < float(pivot):
+                        i += 1
+                    j -= 1
+                    while float(list_file[j][sort_columns[0]]) > float(pivot):
+                        j -= 1
+                    if i >= j:
+                        return j
+                    # Если элемент с индексом i (слева от опорного) больше, чем
+                    # элемент с индексом j (справа от опорного), меняем их местами
+                    list_file[i], list_file[j] = list_file[j], list_file[i]
+        except:
+            while True:
                 i += 1
-            j -= 1
-            while float(list_file[j][sort_index[sort_columns[0]]]) > float(pivot):
+                while list_file[i][sort_columns[0]] < pivot:
+                    i += 1
                 j -= 1
-            if i >= j:
-                return j
-            # Если элемент с индексом i (слева от опорного) больше, чем
-            # элемент с индексом j (справа от опорного), меняем их местами
-            list_file[i], list_file[j] = list_file[j], list_file[i]
+                while list_file[j][sort_columns[0]] > pivot:
+                    j -= 1
+                if i >= j:
+                    return j
+                # Если элемент с индексом i (слева от опорного) больше, чем
+                # элемент с индексом j (справа от опорного), меняем их местами
+                list_file[i], list_file[j] = list_file[j], list_file[i]
 
     def quick_sort(list_file, sort_columns):
         '''
@@ -83,40 +99,121 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
 
 
     try:
-        with open('dump.csv', encoding='utf-8') as open_cache_file:
+        with open('dump.csv', encoding='utf-8', newline='') as open_cache_file:
             #reader_cache_file = csv.reader(open_cache_file)
             for cache in open_cache_file:
-                print(cache)
+                #print(cache)
                 if cache[0] == [sort_columns, limit, group_by_name, order, filename]:
                     return cache[1]
         raise Exception
     except:
-        with open(filename, encoding='utf-8') as open_file:
-            filename_reader = csv.reader(open_file)
+        with open(filename, encoding='utf-8', newline='') as open_file:
+            filename_reader = csv.DictReader(open_file)
             count = 0
             for line in filename_reader:
-                if count == 0:
-                    count += 1
-                    continue
-                if line[sort_index[sort_columns[0]]] == '':
-                    line[sort_index[sort_columns[0]]] = '0'
+                if line[sort_columns[0]] == '':
+                    line[sort_columns[0]] = '0'
                 list_file.append(line)
-            # if group_by_name:
-            #     quick_sort(list_file, ["Name"])
-            quick_sort(list_file, sort_columns)
-        with open('dump.csv', 'a', encoding='utf-8', newline="") as cache_file:
-            write_cache_file = csv.writer(cache_file)
-            if order == 'asc':
-                write_cache_file.writerows([[sort_columns, limit, group_by_name, order, filename], [list_file[:len(list_file)-limit-1:-1]]])
-                return list_file[:len(list_file)-limit-1:-1]
-            else:
-                write_cache_file.writerows([[sort_columns, limit, group_by_name, order, filename], [list_file[:limit-1]]])
-                return list_file[:limit-1]
+            if group_by_name:
+                '''
+                Если присутствует фильтрация по нейму, то фильтруем весь файл по нейму и создаем файлы содержащие один нейм, 
+                после чего проходимся по каждому файлу, фильтруем его по выбранному параметру и соединяем файлы
+                '''
+                quick_sort(list_file, ["Name"])
+                list_for_middle_file = []
+                list_name_middle_file = []
+                for l in range(len(list_file)):
+                    if list_for_middle_file == []:
+                        list_for_middle_file.append(list_file[l])
+                        list_name_middle_file.append(list_file[l]["Name"])
+                        continue
+                    if l == len(list_file) -1 and list_file[l]["Name"] == list_file[l-1]["Name"]:
+                        list_for_middle_file.append(list_file[l])
+                        break
+                    if list_file[l]["Name"] == list_file[l+1]["Name"]:
+                        list_for_middle_file.append(list_file[l])
+                        continue
+                    else:
+                        list_for_middle_file.append(list_file[l])
+                        name_middle_file = list_file[l]["Name"] + '.csv'
+                        if list_file[l]["Name"] == '':
+                            name_middle_file = '1_.csv'
+                        with open(name_middle_file, 'a', encoding='utf-8', newline='') as middle_file:
+                            fieldnames_middle_file = ['date', 'open', 'high', 'low', 'close', 'volume', 'Name']
+                            write_middle_file = csv.DictWriter(middle_file, fieldnames=fieldnames_middle_file)
+                            write_middle_file.writeheader()
+                            for name_line in list_for_middle_file:
+                                write_middle_file.writerow(name_line)
+                            list_for_middle_file = []
+                if order == 'asc':
+                    final_list_first = []
+                    final_list = []
+                    ind = -1
+                    while True:
+                        name = list_name_middle_file[ind]
+                        with open(name, 'a', encoding='utf-8', newline='') as middle_file_r:
+                            read_middle_file_r = csv.DictReader(middle_file_r)
+                            for a in read_middle_file_r:
+                                final_list_first.append(a)
+                                print(final_list_first)
+                            quick_sort(final_list_first, sort_columns)
+                            final_list_first = final_list_first[::-1]
+                            final_list += final_list_first
+                            final_list_first = []
+                            if len(final_list) < limit:    #если длинна конечного списка меньше лимита, открываем следующий файл и
+                                ind -= 1
+                            else:   #если длинна больше или равна лимиту, то выходим из цикла
+                                break
+                    with open('dump.csv', 'a', encoding='utf-8', newline="") as cache_file:
+                        fieldnames = ['request', 'limit', 'date', 'open', 'high', 'low', 'close', 'volume', 'Name']
+                        write_cache_file = csv.DictWriter(cache_file, fieldnames=fieldnames)
+                        size = os.path.getsize('dump.csv')
+                        if not size:
+                            write_cache_file.writeheader()
+                        for i in range(limit):
+                            d_default = {'request': f'{sort_columns}, {limit}, {group_by_name}, {order}, {filename}', 'limit': limit}
+                            d_data = final_list[i]
+                            d_default.update(d_data)
+                            write_cache_file.writerow(d_default)
+                            print(d_default)
+                            return final_list[:limit]
+                else:
+                    final_list_first = []
+                    final_list = []
+                    ind = 0
+                    while True:
+                        name = list_name_middle_file[ind]
+                        with open(name, 'a', encoding='utf-8', newline='') as middle_file_r:
+                            read_middle_file_r = csv.DictReader(middle_file_r)
+                            for a in read_middle_file_r:
+                                final_list_first.append(a)
+                                print(final_list_first)
+                            quick_sort(final_list_first, sort_columns)
+                            final_list += final_list_first
+                            final_list_first = []
+                            if len(final_list) < limit:    #если длинна конечного списка меньше лимита, открываем следующий файл и
+                                ind += 1
+                            else:   #если длинна больше или равна лимиту, то выходим из цикла
+                                break
+                    with open('dump.csv', 'a', encoding='utf-8', newline='') as cache_file:
+                        fieldnames = ['request', 'limit', 'date', 'open', 'high', 'low', 'close', 'volume', 'Name']
+                        write_cache_file = csv.DictWriter(cache_file, fieldnames=fieldnames)
+                        size = os.path.getsize('dump.csv')
+                        if not size:
+                            write_cache_file.writeheader()
+                        for i in range(limit):
+                            d_default = {'request': f'{sort_columns}, {limit}, {group_by_name}, {order}, {filename}', 'limit': limit}
+                            d_data = final_list[i]
+                            d_default.update(d_data)
+                            write_cache_file.writerow(d_default)
+                            print(d_default)
+                            return final_list[:limit]
 
 
-print(select_sorted(filename='all_stocks_5yr.csv', order='desc', limit=3))
+#print(select_sorted(filename='all_stocks_5yr.csv', order='desc', limit=3))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc', limit=13))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5, sort_columns=['close']))
-# print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3, group_by_name=True))
+print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3, group_by_name=True))
+#print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3))
 
