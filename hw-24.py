@@ -3,43 +3,19 @@ import os
 
 def get_by_date(date="2017-08-08", name="PCLN", filename='dump.csv'):
     try:
-        with open(filename, encoding='utf-8') as open_cache_file:
-            for cache in open_cache_file:
-                #line = line.split(';')[1]
-                t = cache.split(';')[1]
-                spl_1 = t.split('[')
-                spl_2 = t.split(']')
-                #answer = spl_2.replace('[', '')
-                print(t)
-                # for i in line:
-                #     i = i.split(',')
-                #     print(i)
-                    #if i[6] == name and i[0] == date:
-                      #  return i
-            # for line in open_file:
-            #     print(line.split(';')[1])
-            #     line = line.split(';')[1]
-            #     mid = 0
-            #     start = 0
-            #     end = len(line)
-            #     step = 0
-            #     while (start <= end):
-            #         #print("Subarray in step {}: {}".format(step, str(array[start:end + 1])))
-            #         step += 1
-            #         mid = (start + end) // 2
-            #
-            #         if  line[mid][0] == date and line[mid][6] == name:
-            #             return mid
-            #
-            #         if element < array[mid]:
-            #             end = mid - 1
-            #         else:
-            #             start = mid + 1
-            #     return -1
+        with open(filename, encoding='utf-8') as open_file:
+            read_open_file = csv.DictReader(open_file)
+            lst = []
+            lst_for_name = []
+            for cache in read_open_file:
+                lst.append(cache)
+            for i in lst:
+                if i['date'] == date and i['Name'] == name:
+                    return list(i.values())
     except FileNotFoundError:
         return 'File not found'
 
-#print(get_by_date(date='2017-08-07', name="PCLN", filename='dump.csv'))
+#print(get_by_date(date='2016-02-29', name="PCLN", filename='123 - Лист1.csv'))
 
 
 def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='desc', filename='dump.csv'):
@@ -400,21 +376,9 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                     return answer
 
 
-
-
-
-
-
-
-
-
-
-
-
 #print(select_sorted(filename='all_stocks_5yr.csv', order='desc', limit=3))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc', limit=7))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5, sort_columns=['close']))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3, group_by_name=True))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='desc',limit=3, group_by_name=True))
-#
