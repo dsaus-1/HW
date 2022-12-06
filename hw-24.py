@@ -91,14 +91,15 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                     return cache['answer']
         raise Exception
     except:
-        with open(filename, encoding='utf-8', newline='') as open_file:
-            filename_reader = csv.DictReader(open_file)
-            count = 0
-            for line in filename_reader:
-                if line[sort_columns[0]] == '':
-                    line[sort_columns[0]] = '0'
-                list_file.append(line)
-            if group_by_name:
+        if group_by_name:
+            with open(filename, encoding='utf-8', newline='') as open_file:
+                filename_reader = csv.DictReader(open_file)
+                count = 0
+                for line in filename_reader:
+                    if line[sort_columns[0]] == '':
+                        line[sort_columns[0]] = '0'
+                    list_file.append(line)
+
 
                 '''
                 Если присутствует фильтрация по нейму, то фильтруем весь файл по нейму и создаем файлы содержащие один нейм, 
@@ -186,19 +187,234 @@ def select_sorted(sort_columns=["high"], limit=30, group_by_name=False, order='d
                         write_cache_file.writerow(
                             {'request': [sort_columns, limit, group_by_name, order, filename], 'answer': answer})
                         return answer
-            '''
-            сортировка без нейма
-            '''
-            count = 0
+        '''
+        сортировка без нейма
+        '''
+        if order == 'desc':
+            with open(filename, encoding='utf-8', newline='') as open_file:
+                filename_reader = csv.DictReader(open_file)
+                count = 0
+                count_file = 0
+                list_file = []
+                list_name_file = []
+
+                for line in filename_reader:
+                    if line[sort_columns[0]] == '':
+                        line[sort_columns[0]] = '0'
+                    list_file.append(line)
+                    count +=1
+
+                    if count == 200000:
+                        count_file += 1
+                        quick_sort(list_file, sort_columns)
+                        name = str(count_file) + 'file.csv'
+                        list_name_file.append(name)
+                        with open(name, 'w', encoding='utf-8', newline='') as new_file:
+                            fieldnames = ['date', 'open', 'high', 'low', 'close', 'volume', 'Name']
+                            write_new_file = csv.DictWriter(new_file, fieldnames=fieldnames)
+                            write_new_file.writeheader()
+                            for st in list_file:
+                                write_new_file.writerow(st)
+                            count = 0
+                            list_file = []
+
+                if list_file != []: # если после завершения цикла в списке остались эл-ты, то дополнительно заводим файл
+                    count_file += 1
+                    quick_sort(list_file, sort_columns)
+                    name = str(count_file) + 'file.csv'
+                    list_name_file.append(name)
+                    with open(name, 'w', encoding='utf-8', newline='') as new_file:
+                        fieldnames = ['date', 'open', 'high', 'low', 'close', 'volume', 'Name']
+                        write_new_file = csv.DictWriter(new_file, fieldnames=fieldnames)
+                        write_new_file.writeheader()
+
+                        for st in list_file:
+                            write_new_file.writerow(st)
+
+                for i in range(len(list_name_file)):
+
+                    file_i = open(list_name_file[i])
+                    reader_i = csv.DictReader(file_i)
+                    name_result = str(i + 1) + 'result.csv'
+                    result_file = open(name_result, 'w')
+                    fieldnames = ['date', 'open', 'high', 'low', 'close', 'volume', 'Name']
+                    result_writer = csv.DictWriter(result_file, fieldnames=fieldnames)
+                    result_writer.writeheader()
+
+                    if i == 0:
+                        for w in reader_i:
+                            result_writer.writerow(w)
+                    else:
+                        name_second = str(i) + 'result.csv'
+                        file_second = open(name_second)
+                        reader_file_second = csv.DictReader(file_second)
+
+                        next_file_i = reader_i.__next__()
+                        next_file_second = reader_file_second.__next__()
+
+                        while True:
+                            if float(next_file_i[sort_columns[0]]) > float(next_file_second[sort_columns[0]]):
+                                result_writer.writerow(next_file_second)
+                                try:
+                                    next_file_second = reader_file_second.__next__()
+                                except:
+                                    for w in reader_i:
+                                        result_writer.writerow(w)
+                                    break
+
+                            else:
+                                result_writer.writerow(next_file_i)
+                                try:
+                                    next_file_i = reader_i.__next__()
+                                except:
+                                    for w in reader_file_second:
+                                        result_writer.writerow(w)
+                                    break
+                        file_second.close()
+                    file_i.close()
+                    result_file.close()
+                answer = []
+                with open(str(len(list_name_file))+'result.csv', 'r', encoding='utf-8', newline="") as result_file:
+                    read_result_file = csv.DictReader(result_file)
+                    count = 0
+                    for i in read_result_file:
+                        if count == limit:
+                            break
+                        answer.append(list(i.values()))
+                        count += 1
+
+                with open('dump.csv', 'a', encoding='utf-8', newline="") as cache_file:
+                    fieldnames = ['request', 'answer']
+                    write_cache_file = csv.DictWriter(cache_file, fieldnames=fieldnames)
+                    size = os.path.getsize('dump.csv')
+                    if size == 0:
+                        write_cache_file.writeheader()
+                    write_cache_file.writerow({'request': [sort_columns, limit, group_by_name, order, filename], 'answer': answer})
+                    return answer
+        '''
+        обратная сортировка
+        '''
+        if order == 'asc':
+            with open(filename, encoding='utf-8', newline='') as open_file:
+                filename_reader = csv.DictReader(open_file)
+                count = 0
+                count_file = 0
+                list_file = []
+                list_name_file = []
+
+                for line in filename_reader:
+                    if line[sort_columns[0]] == '':
+                        line[sort_columns[0]] = '0'
+                    list_file.append(line)
+                    count += 1
+
+                    if count == 200000:
+                        count_file += 1
+                        quick_sort(list_file, sort_columns)
+                        list_file = list_file[::-1]
+                        name = str(count_file) + 'file.csv'
+                        list_name_file.append(name)
+                        with open(name, 'w', encoding='utf-8', newline='') as new_file:
+                            fieldnames = ['date', 'open', 'high', 'low', 'close', 'volume', 'Name']
+                            write_new_file = csv.DictWriter(new_file, fieldnames=fieldnames)
+                            write_new_file.writeheader()
+                            for st in list_file:
+                                write_new_file.writerow(st)
+                            count = 0
+                            list_file = []
+
+                if list_file != []:  # если после завершения цикла в списке остались эл-ты, то дополнительно заводим файл
+                    count_file += 1
+                    quick_sort(list_file, sort_columns)
+                    list_file = list_file[::-1]
+                    name = str(count_file) + 'file.csv'
+                    list_name_file.append(name)
+                    with open(name, 'w', encoding='utf-8', newline='') as new_file:
+                        fieldnames = ['date', 'open', 'high', 'low', 'close', 'volume', 'Name']
+                        write_new_file = csv.DictWriter(new_file, fieldnames=fieldnames)
+                        write_new_file.writeheader()
+
+                        for st in list_file:
+                            write_new_file.writerow(st)
+
+                for i in range(len(list_name_file)):
+
+                    file_i = open(list_name_file[i])
+                    reader_i = csv.DictReader(file_i)
+                    name_result = str(i + 1) + 'result.csv'
+                    result_file = open(name_result, 'w')
+                    fieldnames = ['date', 'open', 'high', 'low', 'close', 'volume', 'Name']
+                    result_writer = csv.DictWriter(result_file, fieldnames=fieldnames)
+                    result_writer.writeheader()
+
+                    if i == 0:
+                        for w in reader_i:
+                            result_writer.writerow(w)
+                    else:
+                        name_second = str(i) + 'result.csv'
+                        file_second = open(name_second)
+                        reader_file_second = csv.DictReader(file_second)
+
+                        next_file_i = reader_i.__next__()
+                        next_file_second = reader_file_second.__next__()
+
+                        while True:
+                            if float(next_file_i[sort_columns[0]]) < float(next_file_second[sort_columns[0]]):
+                                result_writer.writerow(next_file_second)
+                                try:
+                                    next_file_second = reader_file_second.__next__()
+                                except:
+                                    for w in reader_i:
+                                        result_file.writerow(w)
+                                    break
+
+                            else:
+                                result_writer.writerow(next_file_i)
+                                try:
+                                    next_file_i = reader_i.__next__()
+                                except:
+                                    for w in reader_file_second:
+                                        result_writer.writerow(w)
+                                    break
+                        file_second.close()
+                    file_i.close()
+                    result_file.close()
+                answer = []
+                with open(str(len(list_name_file)) + 'result.csv', 'r', encoding='utf-8', newline="") as result_file:
+                    read_result_file = csv.DictReader(result_file)
+                    count = 0
+                    for i in read_result_file:
+                        if count == limit:
+                            break
+                        answer.append(list(i.values()))
+                        count += 1
+
+                with open('dump.csv', 'a', encoding='utf-8', newline="") as cache_file:
+                    fieldnames = ['request', 'answer']
+                    write_cache_file = csv.DictWriter(cache_file, fieldnames=fieldnames)
+                    size = os.path.getsize('dump.csv')
+                    if size == 0:
+                        write_cache_file.writeheader()
+                    write_cache_file.writerow(
+                        {'request': [sort_columns, limit, group_by_name, order, filename], 'answer': answer})
+                    return answer
+
+
+
+
+
+
+
+
 
 
 
 
 
 #print(select_sorted(filename='all_stocks_5yr.csv', order='desc', limit=3))
-# print(select_sorted(filename='all_stocks_5yr.csv', order='asc', limit=13))
+# print(select_sorted(filename='all_stocks_5yr.csv', order='asc', limit=7))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5))
 # print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=5, sort_columns=['close']))
-#print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3, group_by_name=True))
-#print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3))
-
+# print(select_sorted(filename='all_stocks_5yr.csv', order='asc',limit=3, group_by_name=True))
+# print(select_sorted(filename='all_stocks_5yr.csv', order='desc',limit=3, group_by_name=True))
+#
