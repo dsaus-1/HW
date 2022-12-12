@@ -20,11 +20,11 @@ class Connector:
         try:
             with open(self.__data_file, 'r') as open_file:
                 json.load(open_file)
-                #print('Файл уже существует.')
+                print('Файл уже существует.')
         except:
             with open(self.__data_file, 'w+') as open_fil:
                 json.dump('[]', open_fil)
-                #print('Создан новый файл.')
+                print('Создан новый файл.')
 
 
     def insert(self, data):
