@@ -50,8 +50,11 @@ class Connector:
         """
         with open(self.__data_file, 'r') as open_file:
             file = json.load(open_file)
-            key = query[list(query.keys())[0]]
-            new_file = [x for x in file if x[key] == query[key]]
+            key = list(query.keys())
+            if len(key) == 0:
+                new_file = []
+                return new_file
+            new_file = [x for x in file if x[key[0]] == query[key[0]]]
             return new_file
 
     def delete(self, query):
@@ -59,10 +62,18 @@ class Connector:
         Удаление записей из файла, которые соответствуют запрос,
         как в методе select
         """
-        pass
-        #with open(self.__data_file, 'w') as open_file:
-            #file = json.load(open_file)
-            #new_file = [x for x in file if ]
+        write_data = []
+        with open(self.__data_file, 'w') as open_file:
+            try:
+                file = json.load(open_file)
+                if len(query) != 0:
+                    for i in file:
+                        if i[list(query.keys())[0]] == query[list(query.keys())[0]]:
+                            write_data.append(i)
+                json.dump(write_data, open_file)
+            except:
+                json.dump(write_data, open_file)
+
 
 
 if __name__ == '__main__':
