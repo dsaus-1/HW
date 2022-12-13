@@ -18,20 +18,19 @@ class Connector:
         создание его при необходимости
         """
         try:
-            with open(self.__data_file, 'r') as open_file:
+            with open(self.__data_file, 'r', encoding='utf-8') as open_file:
                 json.load(open_file)
-                print('Файл уже существует.')
         except:
-            with open(self.__data_file, 'w+') as open_fil:
+            with open(self.__data_file, 'w+', encoding='utf-8') as open_fil:
                 json.dump('[]', open_fil)
-                print('Создан новый файл.')
+
 
 
     def insert(self, data):
         """
         Запись данных в файл с сохранением структуры и исходных данных
         """
-        with open(self.__data_file, 'w') as open_file:
+        with open(self.__data_file, 'w', encoding='utf-8') as open_file:
             try:
                 file = json.load(open_file)
                 file.append(data)
@@ -39,6 +38,12 @@ class Connector:
             except:
                 file = [data]
                 json.dump(file, open_file)
+
+    def read_file(self):
+        with open(self.__data_file, 'r', encoding='utf-8') as open_file:
+            file = json.load(open_file)
+            return file
+
 
     def select(self, query):
         """
@@ -48,7 +53,7 @@ class Connector:
         {'price': 1000}, должно отфильтровать данные по полю price
         и вернуть все строки, в которых цена 1000
         """
-        with open(self.__data_file, 'r') as open_file:
+        with open(self.__data_file, 'r', encoding='utf-8') as open_file:
             file = json.load(open_file)
             key = list(query.keys())
             if len(key) == 0:
@@ -63,7 +68,7 @@ class Connector:
         как в методе select
         """
         write_data = []
-        with open(self.__data_file, 'w') as open_file:
+        with open(self.__data_file, 'w', encoding='utf-8') as open_file:
             try:
                 file = json.load(open_file)
                 if len(query) != 0:
